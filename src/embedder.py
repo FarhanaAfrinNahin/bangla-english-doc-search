@@ -9,6 +9,18 @@ def load_model():
     return model
 
 
+def embed_texts(texts):
+    """Convert a list of texts into numerical vectors."""
+    model = load_model()
+    vectors = model.encode(
+        texts,
+        convert_to_numpy=True,
+        show_progress_bar=True,
+        batch_size=32,
+    )
+    return vectors
+
+
 if __name__ == "__main__":
     model = load_model()
     print("Embedding model loaded successfully!")
