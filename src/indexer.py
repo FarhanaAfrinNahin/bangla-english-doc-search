@@ -1,7 +1,12 @@
 
+import json
+from pathlib import Path
+
 import faiss
 
 from src.embedder import embed_texts
+
+INDEX_DIR = Path("data/processed")
 
 
 def build_index(chunks):
@@ -13,5 +18,29 @@ def build_index(chunks):
 
     index = faiss.IndexFlatIP(vectors.shape[1])
     index.add(vectors)
-
     return index
+
+
+def save_index(index, chunks, folder=INDEX_DIR):
+    """Save the index and the chunk texts to disk."""
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+
+    faiss.write_index(index, str(folder / "index.faiss"))
+
+    (folder / "chunks.json").write_text(
+        json.dumps(chunks, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def load_index(folder=INDEX_DIR):
+    """Load the saved index and chunk texts."""
+    folder = Path(folder)
+
+    index = faiss.read_index(str(folder / "index.faiss"))
+
+    chunks = json.loads(
+        (folder / "chunks.json").read_text(encoding="utf-8")
+    )
+
+    return index, chunks
