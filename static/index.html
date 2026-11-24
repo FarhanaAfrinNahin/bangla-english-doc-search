@@ -53,6 +53,33 @@
       padding: 24px 16px;
       font-size: 0.9rem;
     }
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+}
+button:hover { opacity: 0.9; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+#doc-list { list-style: none; padding: 0; margin: 16px 0 0; }
+#doc-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+#upload-status { margin-top: 12px; min-height: 1.5em; }
+.ok { color: #15803d; }
+.error { color: #b91c1c; }
+
   </style>
 </head>
 <body>
@@ -67,12 +94,91 @@
       <p class="muted">The search box will go here (step 7C).</p>
     </section>
 
-    <section class="card" id="docs-section">
-      <h2>Your documents</h2>
-      <p class="muted">Upload and the document list will go here (step 7B).</p>
-    </section>
+  <section class="card" id="docs-section">
+  <h2>Your documents</h2>
+  <div class="row">
+    <input type="file" id="file-input" accept=".pdf,.txt">
+    <button id="upload-btn">Upload</button>
+  </div>
+  <p class="muted">PDF or TXT, up to 20 MB.</p>
+  <div id="upload-status"></div>
+  <ul id="doc-list"></ul>
+</section>
   </main>
 
   <footer>Built with FastAPI, sentence-transformers, and FAISS</footer>
+
+<script>
+  const fileInput = document.getElementById("file-input");
+  const uploadBtn = document.getElementById("upload-btn");
+  const statusBox = document.getElementById("upload-status");
+  const docList = document.getElementById("doc-list");
+
+  function showStatus(message, kind) {
+    statusBox.textContent = message;
+    statusBox.className = kind || "";
+  }
+
+  async function loadDocuments() {
+    const res = await fetch("/documents");
+    const data = await res.json();
+    docList.innerHTML = "";
+    if (data.documents.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No documents yet. Upload one above.";
+      li.className = "muted";
+      docList.appendChild(li);
+      return;
+    }
+    for (const doc of data.documents) {
+      const li = document.createElement("li");
+      const label = document.createElement("span");
+      label.textContent = `${doc.filename} (${doc.chunks} chunks)`;
+      const del = document.createElement("button");
+      del.textContent = "Delete";
+      del.className = "danger";
+      del.addEventListener("click", () => deleteDocument(doc.filename));
+      li.append(label, del);
+      docList.appendChild(li);
+    }
+  }
+
+  async function deleteDocument(name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    const res = await fetch("/documents/" + encodeURIComponent(name), { method: "DELETE" });
+    if (res.ok) showStatus(`Deleted ${name}.`, "ok");
+    else showStatus("Could not delete the document.", "error");
+    loadDocuments();
+  }
+
+  uploadBtn.addEventListener("click", async () => {
+    const file = fileInput.files[0];
+    if (!file) {
+      showStatus("Please choose a file first.", "error");
+      return;
+    }
+    const form = new FormData();
+    form.append("file", file);
+    uploadBtn.disabled = true;
+    showStatus("Uploading and indexing... big files can take a minute.");
+    try {
+      const res = await fetch("/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (res.ok) {
+        showStatus(`Added ${data.filename}: ${data.pages} pages, ${data.chunks_added} chunks.`, "ok");
+      } else {
+        showStatus(data.detail || "Upload failed.", "error");
+      }
+    } catch (err) {
+      showStatus("Could not reach the server.", "error");
+    }
+    uploadBtn.disabled = false;
+    fileInput.value = "";
+    loadDocuments();
+  });
+
+  loadDocuments();
+</script>
+
 </body>
 </html>
