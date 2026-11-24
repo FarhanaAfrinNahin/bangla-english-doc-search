@@ -80,6 +80,31 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
 .ok { color: #15803d; }
 .error { color: #b91c1c; }
 
+#search-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  margin-bottom: 12px;
+}
+#search-input:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
+#search-results { margin-top: 16px; }
+.result {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.result:last-child { border-bottom: 0; }
+.result-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+.result-text { white-space: pre-wrap; }
+
   </style>
 </head>
 <body>
@@ -90,9 +115,16 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
 
   <main>
     <section class="card" id="search-section">
-      <h2>Search</h2>
-      <p class="muted">The search box will go here (step 7C).</p>
-    </section>
+  <h2>Search your documents</h2>
+  <input
+    type="text"
+    id="search-input"
+    placeholder="Ask in English or বাংলা..."
+  >
+  <button id="search-btn">Search</button>
+  <div id="search-status" class="muted"></div>
+  <div id="search-results"></div>
+</section>
 
   <section class="card" id="docs-section">
   <h2>Your documents</h2>
@@ -113,6 +145,70 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
   const uploadBtn = document.getElementById("upload-btn");
   const statusBox = document.getElementById("upload-status");
   const docList = document.getElementById("doc-list");
+
+  const searchInput = document.getElementById("search-input");
+  const searchBtn = document.getElementById("search-btn");
+  const searchStatus = document.getElementById("search-status");
+  const searchResults = document.getElementById("search-results");
+
+  async function performSearch() {
+    const query = searchInput.value.trim();
+
+    if (!query) {
+      searchStatus.textContent = "Please enter a search question.";
+      searchResults.innerHTML = "";
+      return;
+    }
+
+    searchBtn.disabled = true;
+    searchStatus.textContent = "Searching...";
+    searchResults.innerHTML = "";
+
+    try {
+      const url = `/search?q=${encodeURIComponent(query)}&top_k=3`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Search failed.");
+      }
+
+      searchResults.innerHTML = "";
+
+      if (data.results.length === 0) {
+        searchStatus.textContent = "No matching passages found.";
+        return;
+      }
+
+      searchStatus.textContent = `Found ${data.results.length} matching passages.`;
+
+      for (const item of data.results) {
+        const result = document.createElement("div");
+        result.className = "result";
+
+        const meta = document.createElement("div");
+        meta.className = "result-meta";
+        meta.textContent = `${item.source} · Page ${item.page} · Score ${item.score}`;
+
+        const content = document.createElement("div");
+        content.className = "result-text";
+        content.textContent = item.text;
+
+        result.append(meta, content);
+        searchResults.appendChild(result);
+      }
+    } catch (err) {
+      searchStatus.textContent = err.message || "Could not reach the server.";
+    } finally {
+      searchBtn.disabled = false;
+    }
+  }
+
+  searchBtn.addEventListener("click", performSearch);
+
+  searchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") performSearch();
+  });
 
   function showStatus(message, kind) {
     statusBox.textContent = message;
