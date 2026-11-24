@@ -105,6 +105,22 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
 }
 .result-text { white-space: pre-wrap; }
 
+.bn { font-family: "Noto Sans Bengali", sans-serif; line-height: 1.9; }
+mark { background: #fef08a; border-radius: 3px; padding: 0 2px; }
+.examples { margin-top: 12px; }
+button.chip {
+  background: #eef2ff;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+footer a { color: var(--accent); }
+@media (max-width: 600px) {
+  header h1 { font-size: 1.3rem; }
+  .card { padding: 14px; }
+}
+
   </style>
 </head>
 <body>
@@ -123,6 +139,15 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
   >
   <button id="search-btn">Search</button>
   <div id="search-status" class="muted"></div>
+
+<div class="row examples">
+  <span class="muted">Try:</span>
+  <button type="button" class="chip" data-q="What causes global warming?">What causes global warming?</button>
+  <button type="button" class="chip" data-q="history of Bengal">history of Bengal</button>
+  <button type="button" class="chip" data-q="বাংলার ইতিহাস">বাংলার ইতিহাস</button>
+  <button type="button" class="chip" data-q="Sundarbans mangrove forest">Sundarbans mangrove forest</button>
+</div>
+
   <div id="search-results"></div>
 </section>
 
@@ -138,18 +163,54 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
 </section>
   </main>
 
-  <footer>Built with FastAPI, sentence-transformers, and FAISS</footer>
+  
+<footer>
+  Built with FastAPI, sentence-transformers, and FAISS ·
+  <a href="https://github.com/FarhanaAfrinNahin/bangla-english-doc-search" target="_blank" rel="noopener">View on GitHub</a>
+</footer>
+
 
 <script>
   const fileInput = document.getElementById("file-input");
   const uploadBtn = document.getElementById("upload-btn");
   const statusBox = document.getElementById("upload-status");
   const docList = document.getElementById("doc-list");
-
+  
   const searchInput = document.getElementById("search-input");
   const searchBtn = document.getElementById("search-btn");
   const searchStatus = document.getElementById("search-status");
   const searchResults = document.getElementById("search-results");
+
+  function hasBangla(text) {
+    return /[\u0980-\u09FF]/.test(text);
+  }
+
+  function highlight(container, text, query) {
+    const words = query.split(/\s+/).filter((w) => w.length > 2);
+
+    if (words.length === 0) {
+      container.textContent = text;
+      return;
+    }
+
+    const escaped = words.map((w) =>
+      w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    );
+    const regex = new RegExp("(" + escaped.join("|") + ")", "gi");
+
+    let last = 0;
+    for (const match of text.matchAll(regex)) {
+      container.append(document.createTextNode(text.slice(last, match.index)));
+
+      const mark = document.createElement("mark");
+      mark.textContent = match[0];
+      container.append(mark);
+
+      last = match.index + match[0].length;
+    }
+
+    container.append(document.createTextNode(text.slice(last)));
+  }
 
   async function performSearch() {
     const query = searchInput.value.trim();
@@ -173,8 +234,6 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
         throw new Error(data.detail || "Search failed.");
       }
 
-      searchResults.innerHTML = "";
-
       if (data.results.length === 0) {
         searchStatus.textContent = "No matching passages found.";
         return;
@@ -192,7 +251,13 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
 
         const content = document.createElement("div");
         content.className = "result-text";
-        content.textContent = item.text;
+
+        if (hasBangla(item.text)) {
+          content.classList.add("bn");
+          content.lang = "bn";
+        }
+
+        highlight(content, item.text, query);
 
         result.append(meta, content);
         searchResults.appendChild(result);
@@ -209,6 +274,14 @@ button.danger { background: #dc2626; padding: 6px 12px; font-size: 0.85rem; }
   searchInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") performSearch();
   });
+
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      searchInput.value = chip.dataset.q;
+      performSearch();
+    });
+  });
+
 
   function showStatus(message, kind) {
     statusBox.textContent = message;
