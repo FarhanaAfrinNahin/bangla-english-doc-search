@@ -121,6 +121,17 @@ footer a { color: var(--accent); }
   .card { padding: 14px; }
 }
 
+.view-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.view-link:hover {
+  text-decoration: underline;
+}
+
   </style>
 </head>
 <body>
@@ -259,7 +270,17 @@ footer a { color: var(--accent); }
 
         highlight(content, item.text, query);
 
-        result.append(meta, content);
+        
+        const link = document.createElement("a");
+        link.className = "view-link";
+        link.textContent = "View page ↗";
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.href = "/files/" + encodeURIComponent(item.source) +
+          (item.source.toLowerCase().endsWith(".pdf") ? "#page=" + item.page : "");
+
+        result.append(meta, content, link);
+
         searchResults.appendChild(result);
       }
     } catch (err) {

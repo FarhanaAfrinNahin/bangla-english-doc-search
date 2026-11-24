@@ -87,3 +87,13 @@ def test_list_and_delete_document(client):
     assert client.delete("/documents/dhaka.txt").status_code == 200
     assert client.get("/documents").json()["documents"] == []
     assert client.delete("/documents/dhaka.txt").status_code == 404
+
+def test_uploaded_file_can_be_opened(client):
+    upload(client, "dhaka.txt", DHAKA)
+    r = client.get("/files/dhaka.txt")
+    assert r.status_code == 200
+    assert r.content == DHAKA
+
+
+def test_missing_file_gives_404(client):
+    assert client.get("/files/nothing.pdf").status_code == 404

@@ -110,3 +110,20 @@ def delete_document(filename: str):
 def web_app():
     """Serve the web page."""
     return FileResponse("static/index.html")
+
+@app.get("/files/{filename}", include_in_schema=False)
+def get_file(filename: str):
+    """Open an uploaded document (used by the 'View page' link)."""
+    name = Path(filename).name
+    path = RAW_DIR / name
+
+    if not path.is_file() or path.suffix.lower() not in ALLOWED_TYPES:
+        raise HTTPException(404, "File not found.")
+
+    media = (
+        "application/pdf"
+        if path.suffix.lower() == ".pdf"
+        else "text/plain; charset=utf-8"
+    )
+
+    return FileResponse(path, media_type=media)
