@@ -131,7 +131,27 @@ footer a { color: var(--accent); }
 .view-link:hover {
   text-decoration: underline;
 }
+.filter {
+  margin-top: 12px;
+}
 
+.filter summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+#filter-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#filter-list label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
   </style>
 </head>
 <body>
@@ -150,7 +170,10 @@ footer a { color: var(--accent); }
   >
   <button id="search-btn">Search</button>
   <div id="search-status" class="muted"></div>
-
+<details class="filter">
+  <summary id="filter-summary">Search in: all documents</summary>
+  <div id="filter-list"></div>
+</details>
 <div class="row examples">
   <span class="muted">Try:</span>
   <button type="button" class="chip" data-q="What causes global warming?">What causes global warming?</button>
@@ -223,72 +246,90 @@ footer a { color: var(--accent); }
     container.append(document.createTextNode(text.slice(last)));
   }
 
-  async function performSearch() {
-    const query = searchInput.value.trim();
+ 
+async function performSearch() {
+  const query = searchInput.value.trim();
 
-    if (!query) {
-      searchStatus.textContent = "Please enter a search question.";
-      searchResults.innerHTML = "";
+  if (!query) {
+    searchStatus.textContent = "Please enter a search question.";
+    searchResults.innerHTML = "";
+    return;
+  }
+
+  const chosen = selectedSources();
+  const total = filterList.querySelectorAll("input").length;
+
+  if (total > 0 && chosen.length === 0) {
+    searchStatus.textContent = "Please tick at least one document.";
+    searchResults.innerHTML = "";
+    return;
+  }
+
+  const params = new URLSearchParams({
+    q: query,
+    top_k: "3"
+  });
+
+  if (chosen.length < total) {
+    chosen.forEach((name) => params.append("source", name));
+  }
+
+  searchBtn.disabled = true;
+  searchStatus.textContent = "Searching...";
+  searchResults.innerHTML = "";
+
+  try {
+    const url = `/search?${params.toString()}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Search failed.");
+    }
+
+    if (data.results.length === 0) {
+      searchStatus.textContent = "No matching passages found.";
       return;
     }
 
-    searchBtn.disabled = true;
-    searchStatus.textContent = "Searching...";
-    searchResults.innerHTML = "";
+    searchStatus.textContent = `Found ${data.results.length} matching passages.`;
 
-    try {
-      const url = `/search?q=${encodeURIComponent(query)}&top_k=3`;
-      const res = await fetch(url);
-      const data = await res.json();
+    for (const item of data.results) {
+      const result = document.createElement("div");
+      result.className = "result";
 
-      if (!res.ok) {
-        throw new Error(data.detail || "Search failed.");
+      const meta = document.createElement("div");
+      meta.className = "result-meta";
+      meta.textContent = `${item.source} · Page ${item.page} · Score ${item.score}`;
+
+      const content = document.createElement("div");
+      content.className = "result-text";
+
+      if (hasBangla(item.text)) {
+        content.classList.add("bn");
+        content.lang = "bn";
       }
 
-      if (data.results.length === 0) {
-        searchStatus.textContent = "No matching passages found.";
-        return;
-      }
+      highlight(content, item.text, query);
 
-      searchStatus.textContent = `Found ${data.results.length} matching passages.`;
+      const link = document.createElement("a");
+      link.className = "view-link";
+      link.textContent = "View page ↗";
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.href = "/files/" + encodeURIComponent(item.source) +
+        (item.source.toLowerCase().endsWith(".pdf") ? "#page=" + item.page : "");
 
-      for (const item of data.results) {
-        const result = document.createElement("div");
-        result.className = "result";
-
-        const meta = document.createElement("div");
-        meta.className = "result-meta";
-        meta.textContent = `${item.source} · Page ${item.page} · Score ${item.score}`;
-
-        const content = document.createElement("div");
-        content.className = "result-text";
-
-        if (hasBangla(item.text)) {
-          content.classList.add("bn");
-          content.lang = "bn";
-        }
-
-        highlight(content, item.text, query);
-
-        
-        const link = document.createElement("a");
-        link.className = "view-link";
-        link.textContent = "View page ↗";
-        link.target = "_blank";
-        link.rel = "noopener";
-        link.href = "/files/" + encodeURIComponent(item.source) +
-          (item.source.toLowerCase().endsWith(".pdf") ? "#page=" + item.page : "");
-
-        result.append(meta, content, link);
-
-        searchResults.appendChild(result);
-      }
-    } catch (err) {
-      searchStatus.textContent = err.message || "Could not reach the server.";
-    } finally {
-      searchBtn.disabled = false;
+      result.append(meta, content, link);
+      searchResults.appendChild(result);
     }
+  } catch (err) {
+    searchStatus.textContent = err.message || "Could not reach the server.";
+  } finally {
+    searchBtn.disabled = false;
   }
+}
+
 
   searchBtn.addEventListener("click", performSearch);
 
@@ -308,10 +349,47 @@ footer a { color: var(--accent); }
     statusBox.textContent = message;
     statusBox.className = kind || "";
   }
+const filterList = document.getElementById("filter-list");
+const filterSummary = document.getElementById("filter-summary");
 
+function selectedSources() {
+  return [...filterList.querySelectorAll("input:checked")].map(
+    (box) => box.value
+  );
+}
+
+function updateFilterSummary() {
+  const total = filterList.querySelectorAll("input").length;
+  const chosen = selectedSources().length;
+
+  filterSummary.textContent =
+    chosen === total
+      ? "Search in: all documents"
+      : `Search in: ${chosen} of ${total} documents`;
+}
+
+function renderFilter(documents) {
+  filterList.innerHTML = "";
+
+  for (const doc of documents) {
+    const label = document.createElement("label");
+    const box = document.createElement("input");
+
+    box.type = "checkbox";
+    box.value = doc.filename;
+    box.checked = true;
+    box.addEventListener("change", updateFilterSummary);
+
+    label.append(box, doc.filename);
+    filterList.appendChild(label);
+  }
+
+  updateFilterSummary();
+}
   async function loadDocuments() {
     const res = await fetch("/documents");
     const data = await res.json();
+    renderFilter(data.documents);
     docList.innerHTML = "";
     if (data.documents.length === 0) {
       const li = document.createElement("li");

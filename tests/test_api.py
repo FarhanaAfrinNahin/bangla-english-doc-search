@@ -97,3 +97,15 @@ def test_uploaded_file_can_be_opened(client):
 
 def test_missing_file_gives_404(client):
     assert client.get("/files/nothing.pdf").status_code == 404
+
+def test_search_can_be_limited_to_one_document(client):
+    upload(client, "dhaka.txt", DHAKA)
+    upload(client, "cooking.txt", COOKING)
+
+    r = client.get(
+        "/search",
+        params={"q": "capital city", "top_k": 5, "source": ["cooking.txt"]},
+    )
+
+    assert r.status_code == 200
+    assert {x["source"] for x in r.json()["results"]} == {"cooking.txt"}

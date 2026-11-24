@@ -69,13 +69,16 @@ def upload(file: UploadFile = File(...)):
     }
 
 
+
 @app.get("/search")
 def search_documents(
     q: str = Query(..., min_length=1, max_length=500),
     top_k: int = Query(3, ge=1, le=10),
+    source: list[str] | None = Query(None),
 ):
-    """Search all documents by meaning."""
-    return {"query": q, "results": search(q, top_k=top_k)}
+    """Search all documents by meaning, or only selected files."""
+    return {"query": q, "results": search(q, top_k=top_k, sources=source)}
+
 @app.get("/documents")
 def list_documents():
     """List all indexed documents and how many chunks each has."""
