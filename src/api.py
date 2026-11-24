@@ -10,7 +10,7 @@ from src.chunker import chunk_pages
 from src.extractor import extract_file
 from src.indexer import add_chunks, save_index
 from src.search import get_index, search
-
+from fastapi.responses import FileResponse
 RAW_DIR = Path("data/raw")
 ALLOWED_TYPES = {".pdf", ".txt"}
 MAX_MB = 20
@@ -103,4 +103,10 @@ def delete_document(filename: str):
         chunks[:] = [c for c in chunks if c["source"] != name]
         save_index(index, chunks)
         (RAW_DIR / name).unlink(missing_ok=True)
-    return {"deleted": name, "chunks_removed": len(ids)}
+        return {"deleted": name, "chunks_removed": len(ids)}
+
+
+@app.get("/app", include_in_schema=False)
+def web_app():
+    """Serve the web page."""
+    return FileResponse("static/index.html")

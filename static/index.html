@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bangla-English Document Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Noto Sans Bengali", sans-serif;
+      line-height: 1.6;
+    }
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    header p { margin: 0; opacity: 0.9; }
+    main {
+      max-width: 860px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: grid;
+      gap: 24px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card h2 { margin-top: 0; font-size: 1.2rem; }
+    .muted { color: var(--muted); }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 24px 16px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bangla-English Document Search</h1>
+    <p>Search your documents by meaning, in Bangla or English</p>
+  </header>
+
+  <main>
+    <section class="card" id="search-section">
+      <h2>Search</h2>
+      <p class="muted">The search box will go here (step 7C).</p>
+    </section>
+
+    <section class="card" id="docs-section">
+      <h2>Your documents</h2>
+      <p class="muted">Upload and the document list will go here (step 7B).</p>
+    </section>
+  </main>
+
+  <footer>Built with FastAPI, sentence-transformers, and FAISS</footer>
+</body>
+</html>
