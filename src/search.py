@@ -7,7 +7,7 @@ from src.indexer import load_index
 _cache = {}
 
 
-def _get_index():
+def get_index():
     """Load the saved index once and reuse it."""
     if "index" not in _cache:
         _cache["index"], _cache["chunks"] = load_index()
@@ -16,7 +16,7 @@ def _get_index():
 
 def search(query, top_k=3):
     """Find the passages that best match the meaning of the query."""
-    index, chunks = _get_index()
+    index, chunks = get_index()
 
     vector = embed_texts([query]).astype("float32")
     faiss.normalize_L2(vector)

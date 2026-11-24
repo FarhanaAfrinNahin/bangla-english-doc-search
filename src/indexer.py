@@ -44,3 +44,13 @@ def load_index(folder=INDEX_DIR):
     )
 
     return index, chunks
+
+def add_chunks(index, chunks, new_chunks):
+    """Embed new chunks and add them to an existing index."""
+    vectors = embed_texts([c["text"] for c in new_chunks]).astype("float32")
+
+    # Normalize new vectors, just like the existing index vectors
+    faiss.normalize_L2(vectors)
+
+    index.add(vectors)
+    chunks.extend(new_chunks)
