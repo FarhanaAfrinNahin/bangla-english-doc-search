@@ -109,3 +109,17 @@ def test_search_can_be_limited_to_one_document(client):
 
     assert r.status_code == 200
     assert {x["source"] for x in r.json()["results"]} == {"cooking.txt"}
+def test_context_returns_text_around_a_chunk(client):
+    text = " ".join(f"w{i}" for i in range(300)).encode()
+    upload(client, "long.txt", text)
+
+    r = client.get("/context", params={"chunk_id": "long.txt-p1-c1"})
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["before"].split()[-1] == "w99"
+    assert data["after"].split()[0] == "w220"
+
+
+def test_context_unknown_chunk_gives_404(client):
+    assert client.get("/context", params={"chunk_id": "nope"}).status_code == 404

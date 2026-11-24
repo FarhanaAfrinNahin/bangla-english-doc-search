@@ -152,6 +152,35 @@ footer a { color: var(--accent); }
   align-items: center;
   cursor: pointer;
 }
+.context {
+  color: var(--muted);
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+  margin: 8px 0 !important;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.actions .view-link {
+  margin-top: 0;
+}
+
+button.link-btn {
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+button.link-btn:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
   </style>
 </head>
 <body>
@@ -320,7 +349,62 @@ async function performSearch() {
       link.href = "/files/" + encodeURIComponent(item.source) +
         (item.source.toLowerCase().endsWith(".pdf") ? "#page=" + item.page : "");
 
-      result.append(meta, content, link);
+      const before = document.createElement("p");
+const after = document.createElement("p");
+
+for (const p of [before, after]) {
+  p.className = "context";
+  p.hidden = true;
+
+  if (content.lang) p.lang = content.lang;
+  if (content.classList.contains("bn")) p.classList.add("bn");
+}
+
+const more = document.createElement("button");
+more.type = "button";
+more.className = "link-btn";
+more.textContent = "Show more";
+
+let loaded = false;
+let expanded = false;
+
+more.addEventListener("click", async () => {
+  if (!loaded) {
+    more.disabled = true;
+
+    try {
+      const res = await fetch(
+        "/context?chunk_id=" + encodeURIComponent(item.chunk_id)
+      );
+
+      if (!res.ok) {
+        throw new Error("Could not load context.");
+      }
+
+      const data = await res.json();
+      before.textContent = data.before;
+      after.textContent = data.after;
+      loaded = true;
+    } catch (err) {
+      searchStatus.textContent = err.message;
+      more.disabled = false;
+      return;
+    }
+
+    more.disabled = false;
+  }
+
+  expanded = !expanded;
+  before.hidden = !expanded;
+  after.hidden = !expanded;
+  more.textContent = expanded ? "Show less" : "Show more";
+});
+
+const actions = document.createElement("div");
+actions.className = "actions";
+actions.append(more, link);
+
+result.append(meta, before, content, after, actions);
       searchResults.appendChild(result);
     }
   } catch (err) {

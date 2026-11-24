@@ -130,3 +130,34 @@ def get_file(filename: str):
     )
 
     return FileResponse(path, media_type=media)
+OVERLAP = 20  # must match the overlap used in chunk_pages
+
+
+@app.get("/context")
+def get_context(chunk_id: str = Query(..., max_length=300)):
+    """Return the text just before and after a chunk (on the same page)."""
+    _, chunks = get_index()
+
+    for i, c in enumerate(chunks):
+        if c["chunk_id"] != chunk_id:
+            continue
+
+        before, after = "", ""
+
+        if (
+            i > 0
+            and chunks[i - 1]["source"] == c["source"]
+            and chunks[i - 1]["page"] == c["page"]
+        ):
+            before = " ".join(chunks[i - 1]["text"].split()[:-OVERLAP])
+
+        if (
+            i + 1 < len(chunks)
+            and chunks[i + 1]["source"] == c["source"]
+            and chunks[i + 1]["page"] == c["page"]
+        ):
+            after = " ".join(chunks[i + 1]["text"].split()[OVERLAP:])
+
+        return {"chunk_id": chunk_id, "before": before, "after": after}
+
+    raise HTTPException(404, "Chunk not found.")

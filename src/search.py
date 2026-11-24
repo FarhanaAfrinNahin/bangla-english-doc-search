@@ -45,6 +45,7 @@ def search(query, top_k=3, sources=None):
         results.append(
             {
                 "score": round(float(score), 3),
+                "chunk_id": chunk["chunk_id"],
                 "source": chunk["source"],
                 "page": chunk["page"],
                 "text": chunk["text"],
