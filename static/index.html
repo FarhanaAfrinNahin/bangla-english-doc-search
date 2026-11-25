@@ -218,14 +218,83 @@ button.link-btn:hover {
   font-weight: 600;
   word-break: break-all;
 }
+header { position: relative; }
+
+#theme-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 1rem;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --accent: #2563eb;
+  --border: #334155;
+}
+
+[data-theme="dark"] input[type="search"],
+[data-theme="dark"] select {
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-theme="dark"] .score {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+
+[data-theme="dark"] button.chip {
+  background: #312e81;
+  color: #c7d2fe;
+}
+
+[data-theme="dark"] mark {
+  background: #a16207;
+  color: #fff;
+}
+
+[data-theme="dark"] .ok { color: #4ade80; }
+[data-theme="dark"] .error { color: #f87171; }
+
+[data-theme="dark"] .view-link,
+[data-theme="dark"] button.link-btn,
+[data-theme="dark"] .filter summary,
+[data-theme="dark"] footer a {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] #drop-zone:hover,
+[data-theme="dark"] #drop-zone:focus-visible,
+[data-theme="dark"] #drop-zone.over {
+  background: #172554;
+}
   </style>
+  <script>
+  (function () {
+    try {
+      var theme = localStorage.getItem("theme");
+      if (!theme) {
+        theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
-  <header>
-    <h1>Bangla-English Document Search</h1>
-    <p>Search your documents by meaning, in Bangla or English</p>
-  </header>
-
+ <header>
+  <button id="theme-toggle" type="button" aria-label="Switch to dark mode">🌙</button>
+  <h1>Bangla-English Document Search</h1>
+  <p>Search your documents by meaning, in Bangla or English</p>
+</header>
   <main>
     <section class="card" id="search-section">
   <h2>Search your documents</h2>
@@ -726,6 +795,37 @@ function renderFilter(documents) {
     }
   })();
 </script>
+<script>
+  (function () {
+    const btn = document.getElementById("theme-toggle");
+    const root = document.documentElement;
 
+    function current() {
+      return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    }
+
+    function refreshButton() {
+      const dark = current() === "dark";
+      btn.textContent = dark ? "☀️" : "🌙";
+      btn.setAttribute(
+        "aria-label",
+        dark ? "Switch to light mode" : "Switch to dark mode"
+      );
+    }
+
+    btn.addEventListener("click", () => {
+      const next = current() === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+
+      try {
+        localStorage.setItem("theme", next);
+      } catch (e) {}
+
+      refreshButton();
+    });
+
+    refreshButton();
+  })();
+</script>
 </body>
 </html>
