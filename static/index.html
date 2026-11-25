@@ -197,6 +197,11 @@ button.link-btn:hover {
     id="search-input"
     placeholder="Ask in English or বাংলা..."
   >
+   <select id="mode" aria-label="Search mode">
+    <option value="semantic">Meaning</option>
+    <option value="hybrid">Hybrid</option>
+    <option value="keyword">Keywords</option>
+  </select>
   <button id="search-btn">Search</button>
   <div id="search-status" class="muted"></div>
 <details class="filter">
@@ -294,14 +299,16 @@ async function performSearch() {
     return;
   }
 
-  const params = new URLSearchParams({
-    q: query,
-    top_k: "3"
-  });
+const params = new URLSearchParams({
+  q: query,
+  top_k: "3"
+});
 
-  if (chosen.length < total) {
-    chosen.forEach((name) => params.append("source", name));
-  }
+params.set("mode", document.getElementById("mode").value);
+
+if (chosen.length < total) {
+  chosen.forEach((name) => params.append("source", name));
+}
 
   searchBtn.disabled = true;
   searchStatus.textContent = "Searching...";
@@ -317,7 +324,8 @@ async function performSearch() {
     }
 
     if (data.results.length === 0) {
-      searchStatus.textContent = "No matching passages found.";
+      searchStatus.textContent =
+  "No results found. Try different words, or switch to Meaning or Hybrid mode.";
       return;
     }
 
