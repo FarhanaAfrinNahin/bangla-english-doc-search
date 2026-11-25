@@ -121,5 +121,33 @@ def test_context_returns_text_around_a_chunk(client):
     assert data["after"].split()[0] == "w220"
 
 
+def test_keyword_mode_finds_exact_word(client):
+    upload(client, "dhaka.txt", DHAKA)
+    upload(client, "cooking.txt", COOKING)
+
+    r = client.get("/search", params={"q": "turmeric", "mode": "keyword"})
+
+    assert r.status_code == 200
+    results = r.json()["results"]
+    assert len(results) == 1
+    assert results[0]["source"] == "cooking.txt"
+
+
+def test_hybrid_mode_works(client):
+    upload(client, "dhaka.txt", DHAKA)
+    upload(client, "cooking.txt", COOKING)
+
+    r = client.get(
+        "/search",
+        params={"q": "turmeric", "mode": "hybrid", "top_k": 2},
+    )
+
+    assert r.status_code == 200
+    assert r.json()["results"][0]["source"] == "cooking.txt"
+
+
+def test_unknown_search_mode_is_rejected(client):
+    r = client.get("/search", params={"q": "x", "mode": "magic"})
+    assert r.status_code == 422
 def test_context_unknown_chunk_gives_404(client):
     assert client.get("/context", params={"chunk_id": "nope"}).status_code == 404

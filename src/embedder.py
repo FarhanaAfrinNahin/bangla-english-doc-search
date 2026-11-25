@@ -15,6 +15,7 @@ def embed_texts(texts):
     vectors = model.encode(
         texts,
         convert_to_numpy=True,
+        normalize_embeddings=True,
         show_progress_bar=True,
         batch_size=32,
     )

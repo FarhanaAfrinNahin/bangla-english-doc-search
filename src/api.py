@@ -9,7 +9,7 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from src.chunker import chunk_pages
 from src.extractor import extract_file
 from src.indexer import add_chunks, save_index
-from src.search import get_index, search
+from src.search import get_index, reset_keyword_index, search
 from fastapi.responses import FileResponse
 RAW_DIR = Path("data/raw")
 ALLOWED_TYPES = {".pdf", ".txt"}
@@ -60,6 +60,7 @@ def upload(file: UploadFile = File(...)):
             raise HTTPException(422, "No readable text found in this file.")
 
         add_chunks(index, chunks, new_chunks)
+        reset_keyword_index()
         save_index(index, chunks)
 
     return {
@@ -75,9 +76,13 @@ def search_documents(
     q: str = Query(..., min_length=1, max_length=500),
     top_k: int = Query(3, ge=1, le=10),
     source: list[str] | None = Query(None),
+    mode: str = Query("semantic", pattern="^(semantic|keyword|hybrid)$"),
 ):
-    """Search all documents by meaning, or only selected files."""
-    return {"query": q, "results": search(q, top_k=top_k, sources=source)}
+    """Search by meaning, by exact words, or both (hybrid)."""
+    return {
+        "query": q,
+        "results": search(q, top_k=top_k, sources=source, mode=mode),
+    }
 
 @app.get("/documents")
 def list_documents():
@@ -104,6 +109,7 @@ def delete_document(filename: str):
             raise HTTPException(404, "Document not found.")
         index.remove_ids(np.array(ids, dtype="int64"))
         chunks[:] = [c for c in chunks if c["source"] != name]
+        reset_keyword_index()
         save_index(index, chunks)
         (RAW_DIR / name).unlink(missing_ok=True)
         return {"deleted": name, "chunks_removed": len(ids)}
