@@ -276,6 +276,20 @@ header { position: relative; }
 [data-theme="dark"] #drop-zone.over {
   background: #172554;
 }
+#history[hidden] {
+  display: none;
+}
+
+#history-list {
+  gap: 8px;
+}
+
+#history .chip {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
   </style>
   <script>
   (function () {
@@ -314,6 +328,11 @@ header { position: relative; }
   <summary id="filter-summary">Search in: all documents</summary>
   <div id="filter-list"></div>
 </details>
+<div id="history" class="row examples" hidden>
+  <span class="muted">Recent:</span>
+  <span id="history-list" class="row"></span>
+  <button type="button" id="history-clear" class="link-btn">Clear</button>
+</div>
 <div class="row examples">
   <span class="muted">Try:</span>
   <button type="button" class="chip" data-q="What causes global warming?">What causes global warming?</button>
@@ -420,6 +439,9 @@ params.set("mode", document.getElementById("mode").value);
 
 if (chosen.length < total) {
   chosen.forEach((name) => params.append("source", name));
+}
+if (window.rememberSearch) {
+  window.rememberSearch(query);
 }
 
   searchBtn.disabled = true;
@@ -825,6 +847,78 @@ function renderFilter(documents) {
     });
 
     refreshButton();
+  })();
+</script>
+<script>
+  (function () {
+    const KEY = "searchHistory";
+    const MAX = 8;
+
+    const input = document.getElementById("search-input");
+    const box = document.getElementById("history");
+    const list = document.getElementById("history-list");
+    const clearBtn = document.getElementById("history-clear");
+
+    if (!input || !box || !list || !clearBtn) return;
+
+    function load() {
+      try {
+        const data = JSON.parse(localStorage.getItem(KEY) || "[]");
+        return Array.isArray(data)
+          ? data.filter((x) => typeof x === "string")
+          : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function save(items) {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(items));
+      } catch (e) {}
+    }
+
+    function render() {
+      const items = load();
+      list.innerHTML = "";
+      box.hidden = items.length === 0;
+
+      for (const q of items) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip";
+        chip.textContent = q;
+        chip.title = q;
+
+        chip.addEventListener("click", () => {
+          input.value = q;
+          performSearch();
+        });
+
+        list.appendChild(chip);
+      }
+    }
+
+    function remember(query) {
+      const q = query.trim().slice(0, 500);
+      if (!q) return;
+
+      const items = load().filter(
+        (x) => x.toLowerCase() !== q.toLowerCase()
+      );
+
+      items.unshift(q);
+      save(items.slice(0, MAX));
+      render();
+    }
+
+    window.rememberSearch = remember;
+    render();
+
+    clearBtn.addEventListener("click", () => {
+      save([]);
+      render();
+    });
   })();
 </script>
 </body>
